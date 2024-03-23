@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  postgres:
+    container_name: userdb
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_SCHEMA}
+    volumes:
+      - database_dockerizing:/var/lib/postgresql/data
+      - ./dbshell:/docker-entrypoint-initdb.d/
+    networks:
+      - backend
+  api:
+    container_name: user_service
+    build: .
+    ports:
+      - 3001:3000
+    restart: always
+    volumes:
+      - api_volume:/usr/src/app/
+    depends_on:
+      - postgres
+    environment:
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASS=${DB_PASS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_SCHEMA=${DB_SCHEMA}
+    networks:
+      - backend
+
+volumes:
+  database_dockerizing:
+  api_volume:
+
+networks:
+  backend:
+    driver: bridge
