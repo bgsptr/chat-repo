@@ -45,7 +45,16 @@ func WebsocketGroupHandler(c echo.Context) error {
     }
     defer ws.Close()
 
-    go ReadMessageHandler()
+
+    // read user information from 
+    user := c.Get("token")
+
+    cl := &model.Client{
+        name: user.Username,
+    }
+
+    go ReadMessageService()
+    WriteMessageService()
 
     for {
         // Write
@@ -98,7 +107,7 @@ func (h *GroupChatHandler) CreateGroup(c echo.Context) error {
 
     h.Room = NewRoom(room.ID, room.Name)
 
-    message
+    // message
 
 	return c.JSON(http.StatusOK, u)
 }
