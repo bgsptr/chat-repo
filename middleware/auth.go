@@ -1,7 +1,12 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
+	"strings"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/labstack/echo"
 )
 
 type JwtContext struct {
@@ -26,7 +31,7 @@ func (j *JwtContext) ValidateJWT(tokenString string) echo.HandlerFunc {
 			return errors.New("Invalid token")
 		}
 
-		tokenString := strings.Replace(authorizationHeader, "Bearer ", "", -1)
+		tokenString := strings.Replace(authHeader, "Bearer ", "", -1)
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return secretKey, nil

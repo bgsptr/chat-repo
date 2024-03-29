@@ -1,7 +1,8 @@
 package model
 
-type Message struct {
+type Chat struct {
+	From *Client `json:"from"`
+	To map[string]*Client `json:"to"`
 	Content string `json:"content"`
 	CreatedAt string `json:"created_at"`
-	RoomID string `json:"room_id"`
 }

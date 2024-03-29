@@ -1,14 +1,18 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"groupservice/model"
+	"groupservice/service"
 	"log"
 	"net/http"
 	"strconv"
-    "errors"
-	"github.com/aws/aws-sdk-go/service"
+	"time"
+
+	// "github.com/aws/aws-sdk-go/service"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo"
 	"golang.org/x/text/cases"
@@ -16,8 +20,12 @@ import (
 
 type GroupChatHandler struct {
     Hub *model.Hub
-    Room map[string]*model.Room
+    // Room map[string]*model.Room
     GroupService *service.GroupService
+}
+
+type Manager struct {
+    *model.Hub
 }
 
 var upgrader = websocket.Upgrader{
@@ -25,19 +33,25 @@ var upgrader = websocket.Upgrader{
     WriteBufferSize: 1024,
 }
 
-func NewGroupChatHandler() *GroupChatHandler {
-    return &GroupChatHandler{}
+func NewGroupChatHandler(srv *service.GroupService, manager *model.Hub) *GroupChatHandler {
+    return &GroupChatHandler{
+        Hub: manager,
+        GroupService: srv,
+    }
 }
 
 func NewHub() *model.Hub {
 	return &model.Hub{
+        Room: make(map[string]*model.Chat),
         Register:   make(chan *model.Client),
 		Unregister: make(chan *model.Client),
-        Broadcast:  make(chan []byte),
+        Broadcast:  make(chan *model.Message),
 	}
 }
 
-func WebsocketGroupHandler(c echo.Context) error {
+// join chat id
+
+func (h *GroupChatHandler) WebsocketGroupHandler(c echo.Context) error {
     ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
     if err != nil {
         log.Println(err)
@@ -46,32 +60,51 @@ func WebsocketGroupHandler(c echo.Context) error {
     defer ws.Close()
 
 
-    // read user information from 
+    // read user information from token
     user := c.Get("token")
 
-    cl := &model.Client{
-        name: user.Username,
+    values := c.Request().URL.Query()
+    roomID := values.Get("roomID")
+
+    newCl := &model.Client{
+        Conn: ws,
+        Username: user.Username,
+        Password: "",
+        Message: make(chan *model.Message),
+        RoomID: roomID,
     }
 
-    go ReadMessageService()
-    WriteMessageService()
+    var messageSend *model.Message
 
-    for {
-        // Write
-        err := ws.WriteMessage(websocket.TextMessage, )
-        if err != nil {
-            c.Logger().Error(err)
-            return err
-        }
-
-        // Read
-        _, msg, err := ws.ReadMessage()        
-        if err != nil {
-            c.Logger().Error(err)
-            return err
-        }
-        fmt.Printf("%s\n", msg)
+    errDecode := json.NewDecoder(c.Request().Body).Decode(&messageSend)
+    if errDecode != nil {
+        return errDecode
     }
+
+    msg := &model.Message{
+        Content: "New User Has Joined",
+        CreatedAt: time.Now().Local().String(),
+        RoomID: roomID,
+    }
+    
+    cl := service.NewClient(newCl)
+
+    find, err := h.GroupService.JoinGroup(cl.Client.Username, cl.RoomID)
+    if !find {
+        h.Hub.Broadcast <- msg
+    }
+
+    if err != nil {
+        c.Logger().Error(err)
+    }
+
+
+    h.Hub.Register <- cl.Client
+    h.Hub.Broadcast <- messageSend
+    
+
+    go cl.WriteMessageService()
+    cl.ReadMessageService(h.Hub)
 }
 
 
@@ -85,16 +118,16 @@ func NewRoom(id string, name string) *model.Room {
 
 func (h *GroupChatHandler) CreateGroup(c echo.Context) error {
     var room *model.Room
-    err := json.NewDecoder(c.Request().Body).Decode(room)
+    err := json.NewDecoder(c.Request().Body).Decode(&room)
     if err != nil {
         return errors.New("error create group")
     }
 
-    username := c.QueryParam("username")
+    user := c.Get("token")
 
     client := &model.Client{
         Conn: nil,
-        Username: username,
+        Username: user.Username,
         Password: "",
         Message: nil,
         RoomID: room.ID,
@@ -105,33 +138,33 @@ func (h *GroupChatHandler) CreateGroup(c echo.Context) error {
         return err
     }
 
-    h.Room = NewRoom(room.ID, room.Name)
+    // for _, l := range h.Room {
+    //     h.Room[l] = NewRoom(room.ID, room.Name)
+    // }
 
     // message
 
 	return c.JSON(http.StatusOK, u)
 }
 
-func JoinGroup(c echo.Context) error {
-
-}
-
 func (h *GroupChatHandler) Run() {
     for {
         select {
         case cl := <- h.Hub.Register:
-            h.Room[cl.RoomID].Clients = append(h.Room[cl.RoomID].Clients, cl)
+            if room, ok := h.Hub.Room[cl.RoomID]; ok {
+                room.To[cl.Username] = cl
+            }
         case cl := <- h.Hub.Unregister:
-            if _, ok := h.Room[cl.RoomID]; ok {
-                if _, ok := h.Room[cl.RoomID].Clients[cl.Username]; ok {
+            if room, ok := h.Hub.Room[cl.RoomID]; ok {
+                if _, ok := room.To[cl.Username]; ok {
                     
-                    delete(h.Room[cl.RoomID].Clients, cl.Username)
+                    delete(h.Hub.Room[cl.RoomID].To, cl.Username)
                     close(cl.Message)
                 }
             }
         case message := <- h.Hub.Broadcast:
-            if _, ok := h.Room[cl.RoomID]; ok {
-                for _, cl := range h.Room[cl.RoomID].Clients {
+            if _, ok := h.Hub.Room[message.RoomID]; ok {
+                for _, cl := range h.Hub.Room[message.RoomID].To {
                     cl.Message <- message
                 }
             }

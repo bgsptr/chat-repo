@@ -1,25 +1,42 @@
 package service
 
 import (
+	"groupservice/config"
 	"groupservice/model"
+	"groupservice/repository"
+	"log"
+	"time"
 
-	"golang.org/x/text/message"
+	// "github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
 )
 
 type MessageService struct {
-
+	MessageRepository *repository.MessageRepository
+	Validator *config.CustomValidator
 }
 
-func NewClient() *model.Client {
-	return &model.Client {
-
+func NewMessageService(msg *MessageRepository, v *config.CustomValidator) *MessageService {
+	return &MessageService{
+		MessageRepository: msg,
+		Validator: v,
 	}
 }
 
-func (cl *model.Client) ReadMessageService(hub *model.Hub) {
+type Client struct {
+	*model.Client
+}
+
+func NewClient(client *model.Client) *Client {
+	return &Client {
+		Client: client,
+	}
+}
+
+func (cl Client) ReadMessageService(hub *model.Hub) {
 	defer func() {
-		hub.Unregister <- cl
-		cl.Close()
+		hub.Unregister <- cl.Client
+		cl.Conn.Close()
 	}()
 
 	for {
@@ -31,17 +48,18 @@ func (cl *model.Client) ReadMessageService(hub *model.Hub) {
 			break
 		}
 
-		msg := &Message{
+		msg := &model.Message{
 			Content:  string(m),
-			RoomID:   cl.RoomID,
-			Username: cl.Username,
+			CreatedAt: time.Now().Local().String(),
+			// RoomID:   cl.RoomID,
+			// Username: cl.Username,
 		}
 
 		hub.Broadcast <- msg
 	}
 }
 
-func (cl *model.Client) WriteMessageService() {
+func (cl Client) WriteMessageService() {
 	defer func() {
 		cl.Conn.Close()
 	}()
@@ -55,4 +73,18 @@ func (cl *model.Client) WriteMessageService() {
 
 		cl.Conn.WriteJSON(message)
 	}
+}
+
+func (m *MessageService) SendMessage(sender interface{}, receiver interface{}, msg string) error {
+	err := m.Validator.TryValidate(sender, receiver, msg)
+	if err != nil {
+		return err
+	}
+
+	err, resp := m.MessageRepository.Send(sender, receiver, msg)
+	if err != nil {
+		return nil
+	}
+
+	return nil
 }
