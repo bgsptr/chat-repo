@@ -6,7 +6,9 @@ import (
 
 	// "userservice/dataservice"
 	// "userservice/usecase"
+	"userservice/config"
 	"userservice/dataservice"
+	"userservice/dataservice/usersqldb"
 	"userservice/handler"
 	"userservice/handler/helper"
 	"userservice/usecase"
@@ -31,11 +33,12 @@ func main() {
 
 	u := depedencyService()
 
-	// userService := usecase.UserService{
-	// 	UserDataService: dataservice.NewUserData(),
-	// }
+	db, err := usersqldb.NewGorm()
+	if err != nil {
+		log.Println("cant instatiate db")
+	}
 
-
+	config.RunPostgresMigrate(db)
 
 	// u := handler.NewUserHandler()
 	router := mux.NewRouter()
