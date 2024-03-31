@@ -38,6 +38,30 @@ func (u *UserService) CreateAccount(ctx context.Context, user *model.User) error
 	return nil
 }
 
+func (u *UserService) Find(ctx context.Context, user *model.User) (string, error) {
+	
+	u, err := u.UserDataService.Find(ctx, user)
+	if err != nil {
+		log.Println("user")
+		return errors.New("failed to create acc in service layer")
+	}
+
+	token := jwt.NewWithClaims(
+		JWT_SIGNING_METHOD,
+		claims,
+	)
+
+	signedToken, err := token.SignedString(JWT_SIGNATURE_KEY)
+	if err != nil {
+		return err
+	}
+
+	if u.Password = user.Password
+
+	return nil
+}
+
+
 // func (u *UserService) UploadFile(uploader *s3manager.Uploader, filePath string, bucketName string, fileName string) error {
 // 	file, err := os.Open(filePath)
 // 	if err != nil {
