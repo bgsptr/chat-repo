@@ -23,6 +23,10 @@ type UserDataService struct {
 // 	Update(username string) (interface{}, error)
 // }
 
+var (
+	ErrFindAccount = errors.New("can't find account")
+)
+
 func NewUserData() *UserDataService {
 	log.Println("user")
 	db, err := usersqldb.NewGorm()
@@ -50,6 +54,17 @@ func (u *UserDataService) Create(ctx context.Context, user *model.User) error {
 		return err
 	}
 	return u.DB.Commit().Error
+}
+
+func (u *UserDataService) Find(ctx context.Context, username string) (*model.User, error) {
+	log.Println(username)
+
+	res := u.DB.Where("username = ?", username).Find(&model.User)
+	if res.Err != nil {
+		return nil, ErrFindAccount
+	}
+
+	return res, nil
 }
 
 // func (u *UserDataService) Update(ctx context.Context, user *model.User) error {
