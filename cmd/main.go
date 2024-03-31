@@ -46,6 +46,7 @@ func main() {
 	subRouter := router.PathPrefix("/api/v1").Subrouter()
 
 	subRouter.HandleFunc("/user", u.CreateAccount).Methods("POST")
+	subRouter.HandleFunc("/login", u.CreateAccount).Methods("POST")
 
 	http.Handle("/", router)
     http.ListenAndServe(":3000",nil)

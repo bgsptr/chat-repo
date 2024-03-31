@@ -3,6 +3,9 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+
 	// "encoding/json"
 	"log"
 	"net/http"
@@ -64,4 +67,31 @@ func (u *UserHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("Success create account"))
+}
+
+func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "POST" {
+		http.Error(w, "400", http.StatusBadRequest)
+		return
+	}
+
+	var user *model.User
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&user); err != nil {
+		return
+	}
+
+	deadline := time.Now().Add(3 * time.Minute)
+
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+
+	token, err := u.UserService.Find(ctx, user)
+	if err != nil  {
+		return	
+	}
+
+	w.Write([]byte(fmt.Sprintf("access_token: %s", token)))
 }

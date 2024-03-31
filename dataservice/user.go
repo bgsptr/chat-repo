@@ -4,10 +4,13 @@ import (
 	// "errors"
 	// "net/http"
 	"context"
+	"errors"
 	"fmt"
-	"userservice/model"
 	"log"
+	"userservice/model"
+
 	"gorm.io/gorm"
+
 	// "gorm.io/driver/mysql"
 
 	"userservice/dataservice/usersqldb"
@@ -56,15 +59,17 @@ func (u *UserDataService) Create(ctx context.Context, user *model.User) error {
 	return u.DB.Commit().Error
 }
 
-func (u *UserDataService) Find(ctx context.Context, username string) (*model.User, error) {
+func (u *UserDataService) FindAcc(ctx context.Context, username string) (*model.User, error) {
 	log.Println(username)
 
-	res := u.DB.Where("username = ?", username).Find(&model.User)
-	if res.Err != nil {
+	user := &model.User{}
+
+	res := u.DB.Where("username = ?", username).Find(&user)
+	if res.Error != nil {
 		return nil, ErrFindAccount
 	}
 
-	return res, nil
+	return user, nil
 }
 
 // func (u *UserDataService) Update(ctx context.Context, user *model.User) error {
