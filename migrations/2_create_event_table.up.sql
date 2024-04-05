@@ -1,3 +1,21 @@
 CREATE TABLE IF NOT EXISTS events(
-    id 
+    id VARCHAR(255) NOT NULL,
+    event_name VARCHAR(255) NOT NULL,
+    from_date VARCHAR(255) NOT NULL,
+    to_date VARCHAR(255) NOT NULL,
+    event_location VARCHAR(255) NOT NULL,
+    descriptions VARCHAR(255),
+    PRIMARY KEY (id)
+)
+
+CREATE TABLE IF NOT EXISTS event_person_invited(
+    id VARCHAR(255) NOT NULL,
+    person_invited VARCHAR(255) NOT NULL
+    PRIMARY KEY (event_id, person_invited)
+)
+
+CREATE TABLE IF NOT EXISTS event_person_confirmed(
+    id VARCHAR(255) NOT NULL,
+    person_confirmed VARCHAR(255) NOT NULL
+    PRIMARY KEY (event_id, person_confirmed)
 )

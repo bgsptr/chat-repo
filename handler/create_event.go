@@ -15,6 +15,10 @@ var (
 	BASE_URL = "http://localhost:8000/user"
 )
 
+var (
+	internalServerError = 500
+)
+
 type EventHandler struct {
 	*http.Client
 	EventService *service.EventService
@@ -65,6 +69,16 @@ func (e *EventHandler) AddEvent(c *gin.Context) {
 		return
 	}
 
+	// get user request from addevent contoller
+
+	var event *dto.EventDTO
+
+	err = c.ShouldBindJSON(&event)
+	if err != nil {
+		c.AbortWithStatusJSON(500, gin.H{"status": "error internal server"})
+		return
+	}
+
 	// decode to struct in json
 	// if err = c.ShouldBindJSON(&dataCreated); err != nil {
 	// 	c.JSON(http.StatusBadRequest, gin.H{"status": "bad request"})
@@ -76,9 +90,10 @@ func (e *EventHandler) AddEvent(c *gin.Context) {
 		Data: userDto.Data.(*model.User),
 	}
 
-	err = e.EventService.CreateEvent(responseUser)
+	data, err := e.EventService.CreateEvent(responseUser, event)
 	if err != nil {
-		return errors.New("error")
+		c.AbortWithStatusJSON(internalServerError, gin.H{"status": "internal service error"})
+		return
 	}
 
 

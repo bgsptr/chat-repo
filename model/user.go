@@ -2,5 +2,5 @@ package model
 
 type User struct {
 	Username string `json:"username"`
-	Pass string `json:"pass"`
+	PhoneNumber int `json:"phone_number"`
 }
