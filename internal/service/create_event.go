@@ -54,7 +54,10 @@ func (e *EventService) CreateEvent(user interface{}, event *dto.EventDTO) (inter
 	}
 	person[id] = everyPerson
 
-	e.EventRepository.CreateEvent(user, newEvent, person)
+	err = e.EventRepository.CreateEvent(user, newEvent, person)
+	if err != nil {
+		return nil, err
+	}
 	
 	// event := &dto.EventDTO{
 	// 	ID: 

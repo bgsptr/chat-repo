@@ -96,7 +96,52 @@ func (e *EventHandler) AddEvent(c *gin.Context) {
 		return
 	}
 
+	if data == nil {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error 404"})
+	}
+
 
 	c.JSON(http.StatusOK, gin.H{"status": "success 200"})
 
+}
+
+func (e *EventHandler) UpdateEvent(c *gin.Context) {
+
+	if c.Request.Method != http.MethodPatch {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "400 Bad Request"})
+	}
+
+	var evt *dto.EventDTO
+	err := json.NewDecoder(c.Request.Body).Decode(&evt)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "500 Internal Server Error"})
+		return
+	}
+
+	id := c.Param("id")
+
+	eventObj, err := e.EventService.UpdateEvent(id, evt)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "500 Internal Server Error"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, dto)
+}
+
+func (e *EventHandler) DeleteEvent(c *gin.Context) {
+	if c.Request.Method != http.MethodDelete {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "400 Bad Request"})
+		return
+	}
+
+	id := c.Param("id")
+
+	err := e.EventService.DeleteEvent(id) 
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "500 Internal Server Error"})
+		return 
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"status": "event deleted"})
 }
