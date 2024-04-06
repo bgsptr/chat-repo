@@ -15,7 +15,17 @@ func NewEventRepository(tx *gorm.DB) *EventRepository {
 	}
 }
 
-func (e *EventRepository) CreateEvent(user interface{}, event *model.Event) (interface{}, error) {
-	
-	e.TX.G
+func (e *EventRepository) CreateEvent(user interface{}, event *model.Event) error {
+	defer func() {
+		if r := recover(); r != nil {
+		  e.TX.Rollback()
+		}
+	  }()
+
+	if err := e.TX.Create(&event).Error; err != nil {
+		e.TX.Rollback()
+		return err
+	}
+
+	return e.TX.Commit().Error
 }
