@@ -60,17 +60,23 @@ func (e *EventRepository) Update(id string, evtEntity *model.Event) (*model.Even
 		}
 	  }()
 
+	if err := e.TX.Model(&model.Event{}).Updates(evtEntity).Error; err != nil {
+		e.TX.Rollback()
+		return nil, errDatabase
+	}
 
+	return evtEntity, e.TX.Commit().Error
 }
 
 func (e *EventRepository) FindGuestsInEvent(idEvt string) ([]string, error) {
 	var guests []string
 	err := e.TX.Model(&model.EventPersonConfirmed{}).Select("username").Where("id = ?", idEvt).Find(&guests).Error
 	if err != nil {
+		e.TX.Rollback()
 		return nil, errDatabase
 	}
 
-	return guests, nil
+	return guests, e.TX.Commit().Error
 }
 
 func (e *EventRepository) Delete(id string) error {
@@ -108,19 +114,26 @@ func (e *EventRepository) FindEventByID(id string) (*model.Event, error) {
 		return nil, err
 	}
 
-	return model, nil
+	return model, e.TX.Commit().Error
 }
 
 func (e *EventRepository) FindEventsByHost(username string) ([]*model.Event, error) {
+	defer func() {
+		if r := recover(); r != nil {
+		  e.TX.Rollback()
+		}
+	  }()
+	  
 	var event []*model.Event
 	err := e.TX.First(&event, "username = ?", username).Order("from_date DESC")
 	if err != nil {
+		e.TX.Rollback()
 		return nil, errDatabase
 	}
 
-	return event, errDatabase
+	return event, e.TX.Commit().Error
 }
 
 func (e *EventRepository) UpdateGuestByEventID(id string, guests []*model.EveryPerson) (*model.EventPersonConfirmed, error) {
-	
+
 }

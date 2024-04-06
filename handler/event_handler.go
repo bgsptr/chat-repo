@@ -145,3 +145,34 @@ func (e *EventHandler) DeleteEvent(c *gin.Context) {
 
 	c.IndentedJSON(http.StatusOK, gin.H{"status": "event deleted"})
 }
+
+func (e *EventHandler) DetailEvent(c *gin.Context) {
+	if c.Request.Method != http.MethodGet {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "400 Bad Request"})
+		return
+	}
+
+	id := c.Param("id")
+
+	evt, err := e.EventService.DetailEvent(id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "500 Internal Server Error"})
+	}
+
+	res := &dto.Response{
+		Status: "200 OK",
+		StatusCode: 200,
+		Data: evt,
+	}
+
+	c.IndentedJSON(http.StatusOK, res)
+}
+
+func (e *EventHandler) ShowAllEvents(c *gin.Context) {
+	if c.Request.Method != http.MethodGet {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "400 Bad Request"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"status": "event deleted"})
+}
