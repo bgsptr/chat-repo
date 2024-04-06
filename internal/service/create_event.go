@@ -1,6 +1,8 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"golang.org/x/calender-service/config"
@@ -32,18 +34,27 @@ func (e *EventService) CreateEvent(user interface{}, event *dto.EventDTO) (inter
 		return nil, err
 	}
 
+	var id string 
+	// generateID()
+
 	newEvent := &model.Event{
-		// ID: uuid.String(),
+		// Id: id,
 		EventName: event.EventName,
 		FromDate: event.FromDate,
 		ToDate: event.ToDate,
-		Location: event.Location,
-		Description: event.Description,
-		PersonAdded: event.PersonAdded,
-		PersonConfirmed: nil,
+		EventLocation: event.Location,
+		Descriptions: event.Description,
 	}
 
-	e.EventRepository.CreateEvent(user, newEvent)
+	person := make(map[string][]string)
+
+	var everyPerson []string
+	for _, val := range event.PersonConfirmed {
+		everyPerson = append(everyPerson, val.Username)
+	}
+	person[id] = everyPerson
+
+	e.EventRepository.CreateEvent(user, newEvent, person)
 	
 	// event := &dto.EventDTO{
 	// 	ID: 

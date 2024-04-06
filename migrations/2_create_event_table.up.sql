@@ -8,14 +8,15 @@ CREATE TABLE IF NOT EXISTS events(
     PRIMARY KEY (id)
 )
 
-CREATE TABLE IF NOT EXISTS event_person_invited(
-    id VARCHAR(255) NOT NULL,
-    person_invited VARCHAR(255) NOT NULL
-    PRIMARY KEY (event_id, person_invited)
-)
-
 CREATE TABLE IF NOT EXISTS event_person_confirmed(
     id VARCHAR(255) NOT NULL,
-    person_confirmed VARCHAR(255) NOT NULL
-    PRIMARY KEY (event_id, person_confirmed)
+    username VARCHAR(255) NOT NULL,
+    confirmed BOOLEAN NOT NULL,
+    PRIMARY KEY (event_id, username)
 )
+
+-- CREATE TABLE IF NOT EXISTS event_person_invited(
+--     id VARCHAR(255) NOT NULL,
+--     person_invited VARCHAR(255) NOT NULL
+--     PRIMARY KEY (event_id, person_invited)
+-- )
