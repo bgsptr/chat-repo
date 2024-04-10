@@ -33,11 +33,12 @@ func main() {
 
 	u := depedencyService()
 
+	// run migrate
+
 	db, err := usersqldb.NewGorm()
 	if err != nil {
 		log.Println("cant instatiate db")
 	}
-
 	config.RunPostgresMigrate(db)
 
 	// u := handler.NewUserHandler()
@@ -46,7 +47,7 @@ func main() {
 	subRouter := router.PathPrefix("/api/v1").Subrouter()
 
 	subRouter.HandleFunc("/user", u.CreateAccount).Methods("POST")
-	subRouter.HandleFunc("/login", u.CreateAccount).Methods("POST")
+	subRouter.HandleFunc("/login", u.Login).Methods("POST")
 
 	http.Handle("/", router)
     http.ListenAndServe(":3000",nil)

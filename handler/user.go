@@ -4,9 +4,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-
-	// "encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -66,7 +63,15 @@ func (u *UserHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("Success create account"))
+	response := &model.SuccessResponse{
+		StatusCode: http.StatusOK,
+		Message: "success create account",
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "500", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +85,7 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var user *model.User
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&user); err != nil {
+		http.Error(w, "400", http.StatusBadRequest)
 		return
 	}
 
@@ -90,8 +96,26 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := u.UserService.Find(ctx, user)
 	if err != nil  {
+		switch err {
+        case u.UserService.ErrUserNotFound():
+            http.Error(w, "User Not Found", http.StatusNotFound)
+        case u.UserService.ErrInvalidPassword():
+            http.Error(w, "Invalid Password", http.StatusUnauthorized)
+        default:
+            http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+        }
 		return	
 	}
 
-	w.Write([]byte(fmt.Sprintf("access_token: %s", token)))
+	response := &model.SuccessResponse{
+		StatusCode: http.StatusOK,
+		Message: token,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "500", http.StatusInternalServerError)
+		return
+	}
+
+	// w.Write([]byte(fmt.Sprintf("access_token: %s", token)))
 }

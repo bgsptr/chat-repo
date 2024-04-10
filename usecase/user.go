@@ -23,6 +23,11 @@ var (
 	LOGIN_EXPIRATION_DURATION = 1 * time.Hour 
 )
 
+var (
+	ErrUserNotFound = errors.New("failed to find user")
+	ErrInvalidPassword = errors.New("passwords do not match")
+)
+
 type UserService struct {
 	UserDataService *dataservice.UserDataService
 }
@@ -48,41 +53,64 @@ func (u *UserService) CreateAccount(ctx context.Context, user *model.User) error
 }
 
 func (u *UserService) Find(ctx context.Context, user *model.User) (string, error) {
-	
-	userFetched, err := u.UserDataService.FindAcc(ctx, user.Username)
-	if err != nil {
-		log.Println("user")
-		return "", errors.New("failed to create acc in service layer")
-	}
+    userFetched, err := u.UserDataService.FindAcc(ctx, user.Username)
+    if err != nil {
+        log.Println("Failed to find user:", err)
+        return "", ErrUserNotFound
+    }
 
-	// bcrypt password
-	if userFetched.Pass != user.Pass {
-		return "", errors.New("password not match")
-	}
+    // Compare passwords securely
+    if !comparePasswords(userFetched.Pass, user.Pass) {
+        return "", ErrInvalidPassword
+    }
 
-	expirationTime := time.Now().Add(LOGIN_EXPIRATION_DURATION)
-	expire := jwt.NewNumericDate(expirationTime)
+    expirationTime := time.Now().Add(LOGIN_EXPIRATION_DURATION)
+    expire := jwt.NewNumericDate(expirationTime)
 
-	claims := &model.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: expire,
-		},
-		Username: userFetched.Username,
-	}
+    claims := &model.Claims{
+        RegisteredClaims: jwt.RegisteredClaims{
+            ExpiresAt: expire,
+        },
+        Username: userFetched.Username,
+    }
 
-	token := jwt.NewWithClaims(
-		JWT_SIGNING_METHOD,
-		claims,
-	)
+    token := jwt.NewWithClaims(JWT_SIGNING_METHOD, claims)
+    signedToken, err := token.SignedString(JWT_SIGNATURE_KEY)
+    if err != nil {
+        log.Println("Failed to sign JWT token:", err)
+        return "", errors.New("failed to sign JWT token")
+    }
 
-	signedToken, err := token.SignedString(JWT_SIGNATURE_KEY)
-	if err != nil {
-		return "", err
-	}
+    // Generate and store refresh token
+    // refreshToken, err := generateRefreshToken()
+    // if err != nil {
+    //     return "", errors.New("failed to generate refresh token")
+    // }
 
-	return signedToken, nil
+    // Store refresh token securely
+
+    return signedToken, nil
 }
 
+func comparePasswords(hashedPassword, password string) bool {
+    // Implement a secure password comparison method, such as bcrypt.CompareHashAndPassword
+    // Example:
+    // err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+    // return err == nil
+    return hashedPassword == password // Temporary insecure comparison for demonstration
+}
+
+func (u *UserService) ErrUserNotFound() error {
+	return ErrUserNotFound
+}
+
+func (u *UserService) ErrInvalidPassword() error {
+	return ErrInvalidPassword
+}
+
+// func (u *UserService) Refresh() (string, error) {
+	
+// }
 
 // func (u *UserService) UploadFile(uploader *s3manager.Uploader, filePath string, bucketName string, fileName string) error {
 // 	file, err := os.Open(filePath)

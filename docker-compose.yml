@@ -15,6 +15,18 @@ services:
       - ./dbshell:/docker-entrypoint-initdb.d/
     networks:
       - backend
+  
+  # postgres_migration:
+  #   image: migrate/migrate
+  #   container_name: postgres_migration
+  #   networks:
+  #     - db-network
+  #   volumes:
+  #     - ./dataservice/migration:/migrations
+  #   depends_on:
+  #     - postgres
+  #   command: -path=/migrations -database postgres://${DB_USERNAME}:${DB_PASS}@localhost:5432/${DB_SCHEMA}?sslmode=disable up
+
   api:
     container_name: user_service
     build: .
@@ -43,3 +55,5 @@ volumes:
 networks:
   backend:
     driver: bridge
+  # db-network:
+  #   driver: bridge
